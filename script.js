@@ -11,26 +11,58 @@ const veganRecipeFilter = document.getElementById("veganRecipeFilter");
 const vegetarianRecipeFilter = document.getElementById("vegetarianRecipeFilter");
 const glutenFreeRecipeFilter = document.getElementById("glutenFreeRecipeFilter");
 
+let veganCheck = '';
+let vegetarianCheck = '';
+let glutenFreeCheck = '';
+
 veganRecipeFilter.addEventListener('change',function() {
     if (veganRecipeFilter.checked) {
         veganCheck = (',vegan').trim()
     } else veganCheck = '';
 })
-let veganCheck = '';
+
 
 vegetarianRecipeFilter.addEventListener('change',function() {
     if (vegetarianRecipeFilter.checked) {
         vegetarianCheck = (',vegetarian').trim()
     } else vegetarianCheck = '';
 })
-let vegetarianCheck = '';
+
 
 glutenFreeRecipeFilter.addEventListener('change',function() {
     if (glutenFreeRecipeFilter.checked) {
         glutenFreeCheck = ('gluten').trim()
     } else glutenFreeCheck = '';
 })
-let glutenFreeCheck = '';
+
+//Local Storage for Favorites
+const favoriteKey = 'recipeKey'
+
+function getFavorites() {
+    const parseRecipe = localStorage.getItem(favoriteKey);
+    return parseRecipe ? JSON.parse(parseRecipe) : []
+}
+function saveFavorites(favorites) {
+    localStorage.setItem(favoriteKey,JSON.stringify(favorites))
+}
+
+function isFavorite(id) {
+    return getFavorites().some((favorited) => favorited.id === id)
+}
+
+function toggleFav(recipeObject) {
+const isFavorited = getFavorites();
+const exist = isFavorited.some((favorited)=> favorited.id === recipeObject.id)
+
+const updatedFavorites = exist
+  ? isFavorited.filter((favorited) => favorited.id !== recipeObject.id)
+  : [...isFavorited, recipeObject];
+
+
+saveFavorites(updatedFavorites);
+return !exist
+
+}
 
 function checkMark(isTrue) {
     return isTrue ?'✅' : '❌';
@@ -81,7 +113,7 @@ function searchRecipes() {
         const recipeDiv = document.createElement('div');
         recipeDiv.className = 'recipe';
         recipeDiv.innerHTML = `
-        <button>❤️</button>
+        <button class="fav-btn" type="button">❤️</button>
         <h3>${title}</h3>
         <img src="${image}" alt="${title}">
         <p><strong>Calories:</strong> ${calories}</p>
@@ -91,6 +123,24 @@ function searchRecipes() {
         <p><strong><a href ="${recipeLink}">More Information</a></strong></p>
         `;
         resultsList.appendChild(recipeDiv);
+        const recipeObject = {
+            id: recipe.id,
+            title,
+            vegetarian: checkMark(isVegetarian),
+            vegan: checkMark(isVegan),
+            gluten: checkMark(isGlutenFree),
+            image,
+            url: recipeLink
+        };
+        const favoritebtn = recipeDiv.querySelector(".fav-btn");
+        favoritebtn.textContent = isFavorite(recipeObject.id) ? "❌" : "❤️"
+        
+        favoritebtn.addEventListener("click", ()=>{
+            const nowFavorite = toggleFav(recipeObject)
+            favoritebtn.textContent = nowFavorite ? "❌" : "❤️"
+        });
+        return recipeDiv
+    
     });
 })
     .catch(error => {
@@ -130,7 +180,7 @@ const apiUrl=`https://api.spoonacular.com/recipes/random?apiKey=${apiKey}&number
         const recipeDiv = document.createElement('div');
         recipeDiv.className = 'recipe';
         recipeDiv.innerHTML = `
-        <button>❤️</button>
+        <button class="fav-btn" type="button">❤️</button>
         <h3>${title}</h3>
         <img src="${image}" alt="${title}">
         <p><strong>Calories:</strong> ${calories}</p>
@@ -139,7 +189,25 @@ const apiUrl=`https://api.spoonacular.com/recipes/random?apiKey=${apiKey}&number
         <p><strong>GlutenFree:</strong> ${checkMark(isGlutenFree)}</p>
         <p><strong><a href ="${recipeLink}">More Information</a></strong></p>
         `;
-        resultsList.appendChild(recipeDiv);        
+        resultsList.appendChild(recipeDiv);
+        const recipeObject = {
+            id: recipe.id,
+            title,
+            calorieAmount: calories,
+            vegetarian: checkMark(isVegetarian),
+            vegan: checkMark(isVegan),
+            gluten: checkMark(isGlutenFree),
+            image,
+            url: recipeLink
+        };
+        const favoritebtn = recipeDiv.querySelector(".fav-btn");
+        favoritebtn.textContent = isFavorite(recipeObject.id) ? "❌" : "❤️"
+        
+        favoritebtn.addEventListener("click", () => {
+            const nowFavorite = toggleFav(recipeObject)
+            favoritebtn.textContent = nowFavorite ? "❌" : "❤️"
+        });
+        return recipeDiv        
     });    
 })
     .catch(error => {
@@ -147,3 +215,34 @@ const apiUrl=`https://api.spoonacular.com/recipes/random?apiKey=${apiKey}&number
         resultsList.innerHTML = '<div class="error">Error fetching recipes. Please try again later.</div>';
     });    
 })
+
+//Show Favorite Button
+
+favoritesBtn.addEventListener('click', function(){
+    resultsList.innerHTML = ''
+    const favoriteRecipes = localStorage.getItem('recipeKey');
+    const favoriteRecipeObject = JSON.parse(favoriteRecipes);
+    favoriteRecipeObject.forEach(recipe => {
+        const title = recipe.title;
+        const calorie = recipe.calorieAmount
+        const vegetarian = recipe.vegetarian;
+        const vegan = recipe.vegan;
+        const gluten = recipe.gluten;
+        const image = recipe.image;
+        const url = recipe.link;
+        
+        
+        const recipeDiv = document.createElement('div');
+        recipeDiv.className = 'recipe';
+        recipeDiv.innerHTML = `
+        <h3>${title}</h3>
+        <img src="${image}" alt="${title}">
+        <p><strong>Calories:</strong> ${calorie}</p>
+        <p><strong>Vegetarian:</strong> ${checkMark(vegetarian)}</p>
+        <p><strong>Vegan:</strong> ${checkMark(vegan)}</p>
+        <p><strong>GlutenFree:</strong> ${checkMark(gluten)}</p>
+        <p><strong><a href ="${url}">More Information</a></strong></p>
+        `;
+        resultsList.appendChild(recipeDiv);    
+    })
+});
